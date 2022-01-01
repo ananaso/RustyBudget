@@ -2,9 +2,40 @@ use console::Term;
 use dialoguer::{theme::ColorfulTheme, Select};
 
 mod entries;
-use entries::{expenses, savings, Entry};
+use entries::{print_all, Entry};
+
+fn handle_result(result: std::io::Result<()>) {
+    match result {
+        Ok(_v) => (),
+        Err(_e) => println!("Error: {}", _e),
+    }
+}
+
+fn entry_menu(term: &Term, title: &str, entries: &mut Vec<Entry>) -> std::io::Result<()> {
+    let items = ["Rearrange", "Edit", "Main Menu"];
+
+    println!("{} ->", title);
+    print_all(entries);
+
+    loop {
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .items(&items)
+            .default(0)
+            .interact_on_opt(term)?;
+
+        match selection {
+            Some(index) if index == items.iter().position(|&x| x == "Main Menu").unwrap() => {
+                break Ok(())
+            }
+            Some(index) => println!("User selected item : {}", items[index]),
+            None => println!("User did not select anything"),
+        }
+    }
+}
 
 fn main() -> std::io::Result<()> {
+    let term = &Term::stderr();
+
     let mut expenses = vec![
         Entry {
             name: String::from("apples"),
@@ -30,26 +61,22 @@ fn main() -> std::io::Result<()> {
     let mut last_selected = 0;
 
     loop {
-        let items = [
-            "View Expenses",
-            "View Savings",
-            "View Free Spending",
-            "Help",
-            "Quit",
-        ];
+        handle_result(term.clear_screen());
+
+        let items = ["Expenses", "Savings", "Free Spending", "Quit"];
         let selection = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
             .default(last_selected)
-            .interact_on_opt(&Term::stderr())?;
+            .interact_on_opt(term)?;
 
         last_selected = selection.unwrap();
 
         match selection {
-            Some(index) if index == items.iter().position(|&x| x == "View Expenses").unwrap() => {
-                expenses::print_all(&mut expenses)
+            Some(index) if index == items.iter().position(|&x| x == "Expenses").unwrap() => {
+                handle_result(entry_menu(term, "Expenses", &mut expenses));
             }
-            Some(index) if index == items.iter().position(|&x| x == "View Savings").unwrap() => {
-                savings::print_all(&mut savings)
+            Some(index) if index == items.iter().position(|&x| x == "Savings").unwrap() => {
+                handle_result(entry_menu(term, "Savings", &mut savings));
             }
             Some(index) if index == items.iter().position(|&x| x == "Quit").unwrap() => {
                 break Ok(())
