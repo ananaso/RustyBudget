@@ -13,13 +13,7 @@ fn rearrange_menu(
     prompt.push_str(title);
     let entry_names: Vec<String> = entries
         .into_iter()
-        .map(|entry| {
-            let amount_str = entry.amount.to_string();
-            let mut entry_str = entry.name.to_owned();
-            entry_str.push_str(": ");
-            entry_str.push_str(&amount_str);
-            return entry_str;
-        })
+        .map(|entry| [entry.name.to_owned(), entry.amount.to_string()].join(": "))
         .collect();
 
     term.clear_screen().unwrap();
