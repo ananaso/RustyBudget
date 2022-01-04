@@ -13,7 +13,7 @@ fn rearrange_menu(
     prompt.push_str(title);
     let entry_names: Vec<String> = entries
         .iter()
-        .map(|entry| [entry.name, entry.amount.to_string().as_str()].join(": "))
+        .map(|entry| [entry.name.to_string(), entry.amount.to_string()].join(": "))
         .collect();
 
     term.clear_screen().unwrap();
@@ -65,22 +65,22 @@ fn main() -> std::io::Result<()> {
 
     let mut expenses = vec![
         Entry {
-            name: "apples",
+            name: String::from("apples"),
             amount: 25f32,
         },
         Entry {
-            name: "oranges",
+            name: String::from("oranges"),
             amount: 32.50f32,
         },
     ];
 
     let mut savings = vec![
         Entry {
-            name: "Emergency Fund",
+            name: String::from("Emergency Fund"),
             amount: 442f32,
         },
         Entry {
-            name: "Car",
+            name: String::from("Car"),
             amount: 450f32,
         },
     ];

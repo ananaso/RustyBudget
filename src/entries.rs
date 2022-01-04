@@ -1,6 +1,6 @@
 #[derive(Clone)]
 pub struct Entry {
-    pub name: &str,
+    pub name: String,
     pub amount: f32,
 }
 
