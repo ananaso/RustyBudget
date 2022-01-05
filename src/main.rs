@@ -1,8 +1,85 @@
 use console::Term;
-use dialoguer::{theme::ColorfulTheme, Select, Sort};
+use dialoguer::{theme::ColorfulTheme, Input, Select, Sort};
 use entries::{print_all, Entry};
 use permutation::Permutation;
 mod entries;
+
+fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
+    let mut prompt = String::from("Editing ");
+    prompt.push_str(
+        [entry.name.to_string(), entry.amount.to_string()]
+            .join(": ")
+            .as_str(),
+    );
+    let items = ["Edit Name", "Edit Amount", "Save and Return", "Return"];
+    let mut modified_entry = Entry::from(&entry);
+
+    loop {
+        term.clear_screen().unwrap();
+        println!(
+            "{} -> {}",
+            prompt,
+            [
+                modified_entry.name.to_owned(),
+                modified_entry.amount.to_string()
+            ]
+            .join(": ")
+        );
+
+        let select_mode = Select::new()
+            .items(&items)
+            .default(0)
+            .interact_on_opt(term)?;
+
+        term.clear_last_lines(1).unwrap();
+
+        match select_mode {
+            Some(0) => {
+                // NAME
+                modified_entry.name = Input::new()
+                    .with_prompt("Name")
+                    .with_initial_text(entry.name.to_string())
+                    .interact_text_on(term)?;
+            }
+            Some(1) => {
+                // AMOUNT
+                modified_entry.amount = Input::new()
+                    .with_prompt("Amount")
+                    .with_initial_text(entry.amount.to_string())
+                    .interact_text_on(term)?;
+            }
+            Some(2) => break Ok(modified_entry), // SAVE AND RETURN
+            Some(3) => break Ok(entry),          // RETURN
+            Some(_) => println!("User selected unhandled attribute"),
+            None => println!("User didn't select anything"),
+        }
+    }
+}
+
+fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
+    let entry_strings: Vec<String> = entries
+        .iter()
+        .map(|entry| [entry.name.to_string(), entry.amount.to_string()].join(": "))
+        .collect();
+
+    term.clear_screen().unwrap();
+
+    let select_to_edit = Select::new()
+        .with_prompt("Select which entry to edit")
+        .items(&entry_strings)
+        .default(0)
+        .interact_on_opt(term)?;
+
+    match select_to_edit {
+        Some(index) => {
+            let entry = Entry::from(&entries[index]);
+            entries[index] = edit_entry(term, entry).unwrap();
+        }
+        None => println!("User didn't select anything"),
+    }
+
+    Ok(entries)
+}
 
 fn rearrange_menu(
     term: &Term,
@@ -11,7 +88,7 @@ fn rearrange_menu(
 ) -> std::io::Result<Vec<Entry>> {
     let mut prompt = String::from("Rearrange ");
     prompt.push_str(title);
-    let entry_names: Vec<String> = entries
+    let entry_strings: Vec<String> = entries
         .iter()
         .map(|entry| [entry.name.to_string(), entry.amount.to_string()].join(": "))
         .collect();
@@ -20,7 +97,7 @@ fn rearrange_menu(
 
     let ordered = Sort::new()
         .with_prompt(prompt)
-        .items(&entry_names)
+        .items(&entry_strings)
         .interact_on_opt(term)?;
 
     match ordered {
@@ -54,6 +131,9 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
             Some(index) if index == items.iter().position(|&x| x == "Rearrange").unwrap() => {
                 entries = rearrange_menu(term, title, entries).unwrap();
             }
+            Some(index) if index == items.iter().position(|&x| x == "Edit").unwrap() => {
+                entries = edit_menu(term, entries).unwrap();
+            }
             Some(index) => println!("User selected item : {}", items[index]),
             None => println!("User did not select anything"),
         }
@@ -61,7 +141,7 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
 }
 
 fn main() -> std::io::Result<()> {
-    let term = &Term::stdout();
+    let term = &Term::stderr();
 
     let mut expenses = vec![
         Entry {
@@ -85,18 +165,14 @@ fn main() -> std::io::Result<()> {
         },
     ];
 
-    let mut last_selected = 0;
-
     loop {
         term.clear_screen().unwrap();
 
         let items = ["Expenses", "Savings", "Free Spending", "Quit"];
         let selection = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
-            .default(last_selected)
+            .default(0)
             .interact_on_opt(term)?;
-
-        last_selected = selection.unwrap();
 
         match selection {
             Some(index) if index == items.iter().position(|&x| x == "Expenses").unwrap() => {
