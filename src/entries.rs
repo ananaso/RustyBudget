@@ -1,15 +1,14 @@
+use std::fmt;
+
 #[derive(Clone)]
 pub struct Entry {
     pub name: String,
     pub amount: f32,
 }
 
-impl Entry {
-    pub fn from(entry: &Entry) -> Self {
-        Self {
-            name: entry.name.clone(),
-            amount: entry.amount,
-        }
+impl fmt::Display for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.amount)
     }
 }
 

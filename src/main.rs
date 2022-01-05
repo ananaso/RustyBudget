@@ -6,25 +6,13 @@ mod entries;
 
 fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
     let mut prompt = String::from("Editing ");
-    prompt.push_str(
-        [entry.name.to_string(), entry.amount.to_string()]
-            .join(": ")
-            .as_str(),
-    );
+    prompt.push_str(entry.to_string().as_str());
     let items = ["Edit Name", "Edit Amount", "Save and Return", "Return"];
-    let mut modified_entry = Entry::from(&entry);
+    let mut modified_entry = entry.clone();
 
     loop {
         term.clear_screen().unwrap();
-        println!(
-            "{} -> {}",
-            prompt,
-            [
-                modified_entry.name.to_owned(),
-                modified_entry.amount.to_string()
-            ]
-            .join(": ")
-        );
+        println!("{} -> {}", prompt, modified_entry.to_string());
 
         let select_mode = Select::new()
             .items(&items)
@@ -57,10 +45,7 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
 }
 
 fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
-    let entry_strings: Vec<String> = entries
-        .iter()
-        .map(|entry| [entry.name.to_string(), entry.amount.to_string()].join(": "))
-        .collect();
+    let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
 
     term.clear_screen().unwrap();
 
@@ -72,7 +57,7 @@ fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>
 
     match select_to_edit {
         Some(index) => {
-            let entry = Entry::from(&entries[index]);
+            let entry = entries[index].clone();
             entries[index] = edit_entry(term, entry).unwrap();
         }
         None => println!("User didn't select anything"),
@@ -88,10 +73,7 @@ fn rearrange_menu(
 ) -> std::io::Result<Vec<Entry>> {
     let mut prompt = String::from("Rearrange ");
     prompt.push_str(title);
-    let entry_strings: Vec<String> = entries
-        .iter()
-        .map(|entry| [entry.name.to_string(), entry.amount.to_string()].join(": "))
-        .collect();
+    let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
 
     term.clear_screen().unwrap();
 
