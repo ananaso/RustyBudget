@@ -63,7 +63,7 @@ fn create_entry(term: &Term) -> Entry {
 }
 
 // screen to edit a single entry
-fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
+fn edit_entry(term: &Term, entry: Entry) -> Entry {
     let mut prompt = String::from("Editing ");
     prompt.push_str(entry.to_string().as_str());
     let items = ["Edit Name", "Edit Amount", "Save and Return", "Return"];
@@ -76,25 +76,44 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
         let select_mode = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
             .default(0)
-            .interact_on_opt(term)?;
+            .interact()
+            .unwrap();
 
-        match items[select_mode.unwrap()] {
+        match items[select_mode] {
             "Edit Name" => {
                 // NAME
                 modified_entry.name = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Name")
                     .with_initial_text(modified_entry.name.to_string())
-                    .interact_text_on(term)?;
+                    .default(modified_entry.name)
+                    .validate_with(|input: &String| -> Result<(), &str> {
+                        if input.is_empty() {
+                            Err("Name cannot be empty")
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .interact_text()
+                    .unwrap();
             }
             "Edit Amount" => {
                 // AMOUNT
                 modified_entry.amount = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Amount")
                     .with_initial_text(modified_entry.amount.to_string())
-                    .interact_text_on(term)?;
+                    .default(modified_entry.amount)
+                    .validate_with(|input: &f32| -> Result<(), &str> {
+                        if input > &0f32 {
+                            Ok(())
+                        } else {
+                            Err("Amount must be a valid number greater than 0")
+                        }
+                    })
+                    .interact_text()
+                    .unwrap();
             }
-            "Save and Return" => break Ok(modified_entry), // SAVE AND RETURN
-            "Return" => break Ok(entry),                   // RETURN
+            "Save and Return" => return modified_entry, // SAVE AND RETURN
+            "Return" => return entry,                   // RETURN
             &_ => println!("User selected unhandled item"),
         }
     }
@@ -115,7 +134,7 @@ fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>
     match select_to_edit {
         Some(index) => {
             let entry = entries[index].clone();
-            entries[index] = edit_entry(term, entry).unwrap();
+            entries[index] = edit_entry(term, entry);
         }
         None => println!("User didn't select anything"),
     }
