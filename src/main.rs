@@ -69,24 +69,26 @@ fn create_entry(term: &Term) -> Entry {
 fn edit_entry(term: &Term, entry: Entry) -> Entry {
     let mut prompt = String::from("Editing ");
     prompt.push_str(entry.to_string().as_str());
-    let items = ["Edit Name", "Edit Amount", "Save and Return", "Return"];
+    prompt.push_str(" -> ");
+    let items = ["Name", "Amount", "Save and Return", "Return"];
     let mut modified_entry = entry.clone();
 
     loop {
         term.clear_screen().unwrap();
-        println!("{} -> {}", prompt, modified_entry.to_string());
+        let mut prompt_mod = prompt.to_owned();
+        prompt_mod.push_str(modified_entry.to_string().as_str());
 
         let select_mode = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt(prompt_mod)
             .items(&items)
             .default(0)
             .interact()
             .unwrap();
 
         match items[select_mode] {
-            "Edit Name" => {
+            "Name" => {
                 // NAME
                 modified_entry.name = Input::with_theme(&ColorfulTheme::default())
-                    .with_prompt("Name")
                     .with_initial_text(modified_entry.name.to_string())
                     .default(modified_entry.name)
                     .validate_with(|input: &String| -> Result<(), &str> {
@@ -99,10 +101,9 @@ fn edit_entry(term: &Term, entry: Entry) -> Entry {
                     .interact_text()
                     .unwrap();
             }
-            "Edit Amount" => {
+            "Amount" => {
                 // AMOUNT
                 modified_entry.amount = Input::with_theme(&ColorfulTheme::default())
-                    .with_prompt("Amount")
                     .with_initial_text(modified_entry.amount.to_string())
                     .default(modified_entry.amount)
                     .validate_with(|input: &f32| -> Result<(), &str> {
@@ -129,7 +130,7 @@ fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>
     term.clear_screen().unwrap();
 
     let select_to_edit = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select which entry to edit")
+        .with_prompt("Select entry to edit")
         .items(&entry_strings)
         .default(0)
         .interact_on_opt(term)?;
