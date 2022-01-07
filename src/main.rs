@@ -20,21 +20,19 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
             .default(0)
             .interact_on_opt(term)?;
 
-        term.clear_last_lines(1).unwrap();
-
         match items[select_mode.unwrap()] {
             "Edit Name" => {
                 // NAME
                 modified_entry.name = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Name")
-                    .with_initial_text(entry.name.to_string())
+                    .with_initial_text(modified_entry.name.to_string())
                     .interact_text_on(term)?;
             }
             "Edit Amount" => {
                 // AMOUNT
                 modified_entry.amount = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Amount")
-                    .with_initial_text(entry.amount.to_string())
+                    .with_initial_text(modified_entry.amount.to_string())
                     .interact_text_on(term)?;
             }
             "Save and Return" => break Ok(modified_entry), // SAVE AND RETURN
