@@ -20,10 +20,10 @@ fn create_entry(term: &Term) -> Entry {
             .with_initial_text(entry.name.to_owned())
             .default(entry.name)
             .validate_with(|input: &String| -> Result<(), &str> {
-                if input.len() > 0 {
-                    Ok(())
-                } else {
+                if input.is_empty() {
                     Err("Name cannot be empty")
+                } else {
+                    Ok(())
                 }
             })
             .interact_text()
@@ -36,17 +36,15 @@ fn create_entry(term: &Term) -> Entry {
             } else {
                 String::from("")
             })
-            .validate_with(|input: &String| -> Result<(), &str> {
-                let input_res = input.parse::<f32>().unwrap_or_else(|_| 0f32);
-                if input_res > 0f32 {
+            .default(entry.amount)
+            .validate_with(|input: &f32| -> Result<(), &str> {
+                if input > &0f32 {
                     Ok(())
                 } else {
                     Err("Amount must be a valid number greater than 0")
                 }
             })
             .interact_text()
-            .unwrap()
-            .parse::<f32>()
             .unwrap();
 
         if Confirm::with_theme(&ColorfulTheme::default())
