@@ -124,34 +124,27 @@ fn edit_entry(term: &Term, entry: Entry) -> Entry {
 }
 
 // screen to select which entry to edit
-fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
+fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> Vec<Entry> {
     let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
 
     term.clear_screen().unwrap();
 
-    let select_to_edit = Select::with_theme(&ColorfulTheme::default())
+    let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select entry to edit")
         .items(&entry_strings)
         .default(0)
-        .interact_on_opt(term)?;
+        .interact_opt()
+        .unwrap();
 
-    match select_to_edit {
-        Some(index) => {
-            let entry = entries[index].clone();
-            entries[index] = edit_entry(term, entry);
-        }
-        None => println!("User didn't select anything"),
+    if let Some(index) = selection {
+        entries[index] = edit_entry(term, entries[index].clone());
     }
 
-    Ok(entries)
+    return entries;
 }
 
 // screen to rearrange the order which entries are listed in
-fn rearrange_menu(
-    term: &Term,
-    title: &str,
-    mut entries: Vec<Entry>,
-) -> std::io::Result<Vec<Entry>> {
+fn rearrange_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> Vec<Entry> {
     let mut prompt = String::from("Rearrange ");
     prompt.push_str(title);
     let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
@@ -161,21 +154,19 @@ fn rearrange_menu(
     let ordered = Sort::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(&entry_strings)
-        .interact_on_opt(term)?;
+        .interact_opt()
+        .unwrap();
 
-    match ordered {
-        Some(new_positions) => {
-            let permutation = Permutation::from_vec(new_positions);
-            entries = permutation.apply_slice(entries);
-        }
-        None => println!("Entries not reordered"),
+    if let Some(new_positions) = ordered {
+        let permutation = Permutation::from_vec(new_positions);
+        entries = permutation.apply_slice(entries);
     }
 
-    Ok(entries)
+    return entries;
 }
 
 // screen to view and manage a class of entries
-fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
+fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> Vec<Entry> {
     let items = ["New", "Edit", "Rearrange", "Main Menu"];
 
     loop {
@@ -186,15 +177,16 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
         let selection = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
             .default(0)
-            .interact_on_opt(term)?;
+            .interact_on_opt(term)
+            .unwrap();
 
         match items[selection.unwrap()] {
-            "Main Menu" => break Ok(entries),
+            "Main Menu" => return entries,
             "Rearrange" => {
-                entries = rearrange_menu(term, title, entries).unwrap();
+                entries = rearrange_menu(term, title, entries);
             }
             "Edit" => {
-                entries = edit_menu(term, entries).unwrap();
+                entries = edit_menu(term, entries);
             }
             "New" => {
                 let new_entry = create_entry(term);
@@ -202,7 +194,7 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
                     entries.push(new_entry);
                 }
             }
-            &_ => println!("User selected unhandled item"),
+            _ => println!("User selected unhandled item"),
         }
     }
 }
@@ -243,10 +235,10 @@ fn main() -> std::io::Result<()> {
 
         match items[selection.unwrap()] {
             "Expenses" => {
-                expenses = entry_menu(term, "Expenses", expenses).unwrap();
+                expenses = entry_menu(term, "Expenses", expenses);
             }
             "Savings" => {
-                savings = entry_menu(term, "Savings", savings).unwrap();
+                savings = entry_menu(term, "Savings", savings);
             }
             "Quit" => break Ok(()),
             &_ => println!("User selected unhandled item"),
