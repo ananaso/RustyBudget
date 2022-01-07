@@ -1,8 +1,66 @@
 use console::Term;
-use dialoguer::{theme::ColorfulTheme, Input, Select, Sort};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select, Sort};
 use entries::{print_all, Entry};
 use permutation::Permutation;
 mod entries;
+
+// screen to create a new entry
+fn create_entry(term: &Term) -> Entry {
+    let prompt = String::from("New Entry ->");
+    println!("{}", prompt);
+
+    let mut entry = Entry {
+        name: String::from(""),
+        amount: 0f32,
+    };
+
+    loop {
+        entry.name = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("Name")
+            .with_initial_text(entry.name.to_owned())
+            .default(entry.name)
+            .validate_with(|input: &String| -> Result<(), &str> {
+                if input.len() > 0 {
+                    Ok(())
+                } else {
+                    Err("Name cannot be empty")
+                }
+            })
+            .interact_text()
+            .unwrap();
+
+        entry.amount = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("Amount")
+            .with_initial_text(if entry.amount > 0f32 {
+                entry.amount.to_string()
+            } else {
+                String::from("")
+            })
+            .validate_with(|input: &String| -> Result<(), &str> {
+                let input_res = input.parse::<f32>().unwrap_or_else(|_| 0f32);
+                if input_res > 0f32 {
+                    Ok(())
+                } else {
+                    Err("Amount must be a valid number greater than 0")
+                }
+            })
+            .interact_text()
+            .unwrap()
+            .parse::<f32>()
+            .unwrap();
+
+        if Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Create new entry? [Y/n]")
+            .default(true)
+            .interact()
+            .unwrap()
+        {
+            return entry;
+        } else {
+            term.clear_last_lines(3).unwrap();
+        }
+    }
+}
 
 // screen to edit a single entry
 fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
@@ -95,7 +153,7 @@ fn rearrange_menu(
 
 // screen to view and manage a class of entries
 fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
-    let items = ["Rearrange", "Edit", "Main Menu"];
+    let items = ["New", "Edit", "Rearrange", "Main Menu"];
 
     loop {
         term.clear_screen().unwrap();
@@ -114,6 +172,9 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
             }
             "Edit" => {
                 entries = edit_menu(term, entries).unwrap();
+            }
+            "New" => {
+                entries.push(create_entry(term));
             }
             &_ => println!("User selected unhandled item"),
         }
