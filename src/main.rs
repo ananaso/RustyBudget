@@ -9,10 +9,7 @@ fn create_entry(term: &Term) -> Entry {
     let prompt = String::from("New Entry ->");
     println!("{}", prompt);
 
-    let mut entry = Entry {
-        name: String::from(""),
-        amount: 0f32,
-    };
+    let mut entry = Entry::default();
 
     loop {
         entry.name = Input::with_theme(&ColorfulTheme::default())
@@ -47,15 +44,23 @@ fn create_entry(term: &Term) -> Entry {
             .interact_text()
             .unwrap();
 
-        if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Create new entry? [Y/n]")
+        let confirm = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Create new entry?")
             .default(true)
-            .interact()
-            .unwrap()
-        {
-            return entry;
-        } else {
-            term.clear_last_lines(3).unwrap();
+            .interact_opt()
+            .unwrap();
+
+        match confirm {
+            Some(answer) => {
+                if answer {
+                    return entry;
+                } else {
+                    term.clear_last_lines(3).unwrap();
+                }
+            }
+            None => {
+                return Entry::default();
+            }
         }
     }
 }
@@ -191,7 +196,10 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
                 entries = edit_menu(term, entries).unwrap();
             }
             "New" => {
-                entries.push(create_entry(term));
+                let new_entry = create_entry(term);
+                if !new_entry.is_default() {
+                    entries.push(new_entry);
+                }
             }
             &_ => println!("User selected unhandled item"),
         }

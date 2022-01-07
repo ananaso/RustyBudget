@@ -1,9 +1,15 @@
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Entry {
     pub name: String,
     pub amount: f32,
+}
+
+impl Entry {
+    pub fn is_default(&self) -> bool {
+        self.name == "" && self.amount == 0f32
+    }
 }
 
 impl fmt::Display for Entry {
