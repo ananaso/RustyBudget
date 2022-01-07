@@ -4,6 +4,7 @@ use entries::{print_all, Entry};
 use permutation::Permutation;
 mod entries;
 
+// screen to edit a single entry
 fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
     let mut prompt = String::from("Editing ");
     prompt.push_str(entry.to_string().as_str());
@@ -14,7 +15,7 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
         term.clear_screen().unwrap();
         println!("{} -> {}", prompt, modified_entry.to_string());
 
-        let select_mode = Select::new()
+        let select_mode = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
             .default(0)
             .interact_on_opt(term)?;
@@ -24,14 +25,14 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
         match select_mode {
             Some(0) => {
                 // NAME
-                modified_entry.name = Input::new()
+                modified_entry.name = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Name")
                     .with_initial_text(entry.name.to_string())
                     .interact_text_on(term)?;
             }
             Some(1) => {
                 // AMOUNT
-                modified_entry.amount = Input::new()
+                modified_entry.amount = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Amount")
                     .with_initial_text(entry.amount.to_string())
                     .interact_text_on(term)?;
@@ -44,12 +45,13 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
     }
 }
 
+// screen to select which entry to edit
 fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
     let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
 
     term.clear_screen().unwrap();
 
-    let select_to_edit = Select::new()
+    let select_to_edit = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select which entry to edit")
         .items(&entry_strings)
         .default(0)
@@ -66,6 +68,7 @@ fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>
     Ok(entries)
 }
 
+// screen to rearrange the order which entries are listed in
 fn rearrange_menu(
     term: &Term,
     title: &str,
@@ -77,7 +80,7 @@ fn rearrange_menu(
 
     term.clear_screen().unwrap();
 
-    let ordered = Sort::new()
+    let ordered = Sort::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(&entry_strings)
         .interact_on_opt(term)?;
@@ -93,6 +96,7 @@ fn rearrange_menu(
     Ok(entries)
 }
 
+// screen to view and manage a class of entries
 fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
     let items = ["Rearrange", "Edit", "Main Menu"];
 
