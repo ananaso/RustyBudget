@@ -22,25 +22,24 @@ fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
 
         term.clear_last_lines(1).unwrap();
 
-        match select_mode {
-            Some(0) => {
+        match items[select_mode.unwrap()] {
+            "Edit Name" => {
                 // NAME
                 modified_entry.name = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Name")
                     .with_initial_text(entry.name.to_string())
                     .interact_text_on(term)?;
             }
-            Some(1) => {
+            "Edit Amount" => {
                 // AMOUNT
                 modified_entry.amount = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Amount")
                     .with_initial_text(entry.amount.to_string())
                     .interact_text_on(term)?;
             }
-            Some(2) => break Ok(modified_entry), // SAVE AND RETURN
-            Some(3) => break Ok(entry),          // RETURN
-            Some(_) => println!("User selected unhandled attribute"),
-            None => println!("User didn't select anything"),
+            "Save and Return" => break Ok(modified_entry), // SAVE AND RETURN
+            "Return" => break Ok(entry),                   // RETURN
+            &_ => println!("User selected unhandled item"),
         }
     }
 }
@@ -110,18 +109,15 @@ fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Res
             .default(0)
             .interact_on_opt(term)?;
 
-        match selection {
-            Some(index) if index == items.iter().position(|&x| x == "Main Menu").unwrap() => {
-                break Ok(entries)
-            }
-            Some(index) if index == items.iter().position(|&x| x == "Rearrange").unwrap() => {
+        match items[selection.unwrap()] {
+            "Main Menu" => break Ok(entries),
+            "Rearrange" => {
                 entries = rearrange_menu(term, title, entries).unwrap();
             }
-            Some(index) if index == items.iter().position(|&x| x == "Edit").unwrap() => {
+            "Edit" => {
                 entries = edit_menu(term, entries).unwrap();
             }
-            Some(index) => println!("User selected item : {}", items[index]),
-            None => println!("User did not select anything"),
+            &_ => println!("User selected unhandled item"),
         }
     }
 }
@@ -160,18 +156,15 @@ fn main() -> std::io::Result<()> {
             .default(0)
             .interact_on_opt(term)?;
 
-        match selection {
-            Some(index) if index == items.iter().position(|&x| x == "Expenses").unwrap() => {
+        match items[selection.unwrap()] {
+            "Expenses" => {
                 expenses = entry_menu(term, "Expenses", expenses).unwrap();
             }
-            Some(index) if index == items.iter().position(|&x| x == "Savings").unwrap() => {
+            "Savings" => {
                 savings = entry_menu(term, "Savings", savings).unwrap();
             }
-            Some(index) if index == items.iter().position(|&x| x == "Quit").unwrap() => {
-                break Ok(())
-            }
-            Some(index) => println!("User selected item : {}", items[index]),
-            None => println!("User did not select anything"),
+            "Quit" => break Ok(()),
+            &_ => println!("User selected unhandled item"),
         }
     }
 }
