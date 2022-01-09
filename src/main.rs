@@ -5,7 +5,7 @@ use permutation::Permutation;
 mod entries;
 
 // screen to create a new entry
-fn create_entry(term: &Term) -> Entry {
+fn create_entry(term: &Term) -> std::io::Result<Entry> {
     let prompt = String::from("New Entry ->");
     println!("{}", prompt);
 
@@ -23,8 +23,7 @@ fn create_entry(term: &Term) -> Entry {
                     Ok(())
                 }
             })
-            .interact_text()
-            .unwrap();
+            .interact_text()?;
 
         entry.amount = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Amount")
@@ -41,32 +40,33 @@ fn create_entry(term: &Term) -> Entry {
                     Err("Amount must be a valid number greater than 0")
                 }
             })
-            .interact_text()
-            .unwrap();
+            .interact_text()?;
 
         let confirm = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Create new entry?")
             .default(true)
-            .interact_opt()
-            .unwrap();
+            .interact_opt()?;
 
         match confirm {
             Some(answer) => {
                 if answer {
-                    return entry;
+                    break;
                 } else {
-                    term.clear_last_lines(3).unwrap();
+                    term.clear_last_lines(3)?;
                 }
             }
             None => {
-                return Entry::default();
+                entry = Entry::default();
+                break;
             }
         }
     }
+
+    Ok(entry)
 }
 
 // screen to edit a single entry
-fn edit_entry(term: &Term, entry: Entry) -> Entry {
+fn edit_entry(term: &Term, entry: Entry) -> std::io::Result<Entry> {
     let mut prompt = String::from("Editing ");
     prompt.push_str(entry.to_string().as_str());
     prompt.push_str(" -> ");
@@ -74,7 +74,7 @@ fn edit_entry(term: &Term, entry: Entry) -> Entry {
     let mut modified_entry = entry.clone();
 
     loop {
-        term.clear_screen().unwrap();
+        term.clear_screen()?;
         let mut prompt_mod = prompt.to_owned();
         prompt_mod.push_str(modified_entry.to_string().as_str());
 
@@ -82,8 +82,7 @@ fn edit_entry(term: &Term, entry: Entry) -> Entry {
             .with_prompt(prompt_mod)
             .items(&items)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact()?;
 
         match items[select_mode] {
             "Name" => {
@@ -98,8 +97,7 @@ fn edit_entry(term: &Term, entry: Entry) -> Entry {
                             Ok(())
                         }
                     })
-                    .interact_text()
-                    .unwrap();
+                    .interact_text()?;
             }
             "Amount" => {
                 // AMOUNT
@@ -113,90 +111,99 @@ fn edit_entry(term: &Term, entry: Entry) -> Entry {
                             Err("Amount must be a valid number greater than 0")
                         }
                     })
-                    .interact_text()
-                    .unwrap();
+                    .interact_text()?;
             }
-            "Save and Return" => return modified_entry, // SAVE AND RETURN
-            "Return" => return entry,                   // RETURN
+            "Save and Return" => return Ok(modified_entry), // SAVE AND RETURN
+            "Return" => return Ok(entry),                   // RETURN
             &_ => println!("User selected unhandled item"),
         }
     }
 }
 
 // screen to select which entry to edit
-fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> Vec<Entry> {
+fn edit_menu(term: &Term, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
     let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
 
-    term.clear_screen().unwrap();
+    term.clear_screen()?;
 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select entry to edit")
         .items(&entry_strings)
         .default(0)
-        .interact_opt()
-        .unwrap();
+        .interact_opt()?;
 
     if let Some(index) = selection {
-        entries[index] = edit_entry(term, entries[index].clone());
+        entries[index] = edit_entry(term, entries[index].clone())?;
     }
 
-    return entries;
+    Ok(entries)
 }
 
 // screen to rearrange the order which entries are listed in
-fn rearrange_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> Vec<Entry> {
+fn rearrange_menu(
+    term: &Term,
+    title: &str,
+    mut entries: Vec<Entry>,
+) -> std::io::Result<Vec<Entry>> {
     let mut prompt = String::from("Rearrange ");
     prompt.push_str(title);
     let entry_strings: Vec<String> = entries.iter().map(|entry| entry.to_string()).collect();
 
-    term.clear_screen().unwrap();
+    term.clear_screen()?;
 
     let ordered = Sort::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(&entry_strings)
-        .interact_opt()
-        .unwrap();
+        .interact_opt()?;
 
     if let Some(new_positions) = ordered {
         let permutation = Permutation::from_vec(new_positions);
         entries = permutation.apply_slice(entries);
     }
 
-    return entries;
+    Ok(entries)
 }
 
 // screen to view and manage a class of entries
-fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> Vec<Entry> {
+fn entry_menu(term: &Term, title: &str, mut entries: Vec<Entry>) -> std::io::Result<Vec<Entry>> {
     let items = ["New", "Edit", "Rearrange", "Main Menu"];
 
     loop {
-        term.clear_screen().unwrap();
+        term.clear_screen()?;
         println!("{} ->", title);
         print_all(&entries);
 
         let selection = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
             .default(0)
-            .interact_on_opt(term)
-            .unwrap();
+            .interact_opt()?;
 
-        match items[selection.unwrap()] {
-            "Main Menu" => return entries,
-            "Rearrange" => {
-                entries = rearrange_menu(term, title, entries);
-            }
-            "Edit" => {
-                entries = edit_menu(term, entries);
-            }
-            "New" => {
-                let new_entry = create_entry(term);
-                if !new_entry.is_default() {
-                    entries.push(new_entry);
+        match selection {
+            Some(index) => {
+                let selected_menu_item = items[index];
+                match selected_menu_item {
+                    "Main Menu" => break,
+                    "Rearrange" => {
+                        entries = rearrange_menu(term, title, entries)?;
+                    }
+                    "Edit" => {
+                        entries = edit_menu(term, entries)?;
+                    }
+                    "New" => {
+                        let new_entry = create_entry(term)?;
+                        if !new_entry.is_default() {
+                            entries.push(new_entry);
+                        }
+                    }
+                    &_ => panic!("Selected invalid menu item"),
                 }
             }
-            _ => println!("User selected unhandled item"),
+
+            None => break,
         }
     }
+
+    Ok(entries)
 }
 
 fn main() -> std::io::Result<()> {
@@ -225,23 +232,29 @@ fn main() -> std::io::Result<()> {
     ];
 
     loop {
-        term.clear_screen().unwrap();
+        term.clear_screen()?;
 
-        let items = ["Expenses", "Savings", "Free Spending", "Quit"];
+        let items = ["Expenses", "Savings", "Quit"];
         let selection = Select::with_theme(&ColorfulTheme::default())
             .items(&items)
             .default(0)
             .interact_on_opt(term)?;
 
-        match items[selection.unwrap()] {
-            "Expenses" => {
-                expenses = entry_menu(term, "Expenses", expenses);
+        match selection {
+            Some(index) => {
+                let selected_menu_item = items[index];
+                match selected_menu_item {
+                    "Expenses" => {
+                        expenses = entry_menu(term, "Expenses", expenses)?;
+                    }
+                    "Savings" => {
+                        savings = entry_menu(term, "Savings", savings)?;
+                    }
+                    "Quit" => break Ok(()),
+                    &_ => panic!("Selected invalid menu item"),
+                }
             }
-            "Savings" => {
-                savings = entry_menu(term, "Savings", savings);
-            }
-            "Quit" => break Ok(()),
-            &_ => println!("User selected unhandled item"),
+            None => println!("User selected unhandled item"),
         }
     }
 }
